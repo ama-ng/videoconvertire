@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Business Connect | AMA Digital Hub</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .glass-morphism {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .hero-gradient {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%);
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-900 font-sans">
+
+    <!-- Navigation -->
+    <nav class="sticky top-0 z-50 glass-morphism shadow-sm py-4 px-6 flex justify-between items-center">
+        <h1 class="text-2xl font-bold text-blue-800 tracking-tight">AMA <span class="text-blue-500">Digital Hub</span></h1>
+        <a href="YOUR_GOOGLE_FORM_URL" target="_blank" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all">
+            Register Business
+        </a>
+    </nav>
+
+    <!-- Hero Section -->
+    <header class="hero-gradient text-white py-16 px-6 text-center">
+        <h2 class="text-4xl md:text-5xl font-extrabold mb-4">Find Local Businesses Instantly</h2>
+        <p class="text-blue-100 text-lg mb-8 max-w-2xl mx-auto">Connecting you with verified sellers in your community. Search for products, services, or locations.</p>
+        
+        <div class="max-w-xl mx-auto relative">
+            <input type="text" id="searchInput" onkeyup="filterBusinesses()" placeholder="What are you looking for? (e.g. Shoes, Tailor, Cement)" 
+                class="w-full p-5 rounded-2xl text-gray-800 shadow-2xl focus:ring-4 focus:ring-blue-300 outline-none text-lg">
+            <i class="fas fa-search absolute right-5 top-6 text-gray-400 text-xl"></i>
+        </div>
+    </header>
+
+    <!-- Business Listing Section -->
+    <main class="max-w-7xl mx-auto px-6 py-12">
+        <div id="loading" class="text-center py-10">
+            <div class="animate-spin inline-block w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full mb-2"></div>
+            <p>Fetching local businesses...</p>
+        </div>
+
+        <div id="businessGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Cards will be injected here -->
+        </div>
+
+        <div id="noResults" class="hidden text-center py-20">
+            <i class="fas fa-store-slash text-5xl text-gray-300 mb-4"></i>
+            <p class="text-xl text-gray-500">No businesses found matching your search.</p>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-gray-400 py-10 text-center border-t border-gray-800">
+        <p class="mb-2">&copy; 2026 AMA Digital Hub. All Rights Reserved.</p>
+        <p class="text-sm">Empowering local commerce through technology.</p>
+    </footer>
+
+    <script>
+        // REPLACE THIS WITH YOUR GOOGLE SHEETS PUBLISHED CSV URL
+        const SHEET_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/YOUR_ID/pub?output=csv';
+
+        let businessData = [];
+
+        async function fetchBusinesses() {
+            try {
+                const response = await fetch(SHEET_CSV_URL);
+                const data = await response.text();
+                
+                // Parse CSV rows
+                const rows = data.split('\n').slice(1); // Skip header row
+                businessData = rows.map(row => {
+                    const columns = row.split(',');
+                    return {
+                        timestamp: columns[0],
+                        name: columns[1],
+                        product: columns[2],
+                        phone: columns[3],
+                        state: columns[4],
+                        lga: columns[5],
+                        ward: columns[6],
+                        location: columns[7]
+                    };
+                }).filter(b => b.name); // Filter out empty rows
+
+                displayBusinesses(businessData);
+                document.getElementById('loading').classList.add('hidden');
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                document.getElementById('loading').innerHTML = 'Error loading data. Please refresh.';
+            }
+        }
+
+        function displayBusinesses(list) {
+            const grid = document.getElementById('businessGrid');
+            const noResults = document.getElementById('noResults');
+            grid.innerHTML = '';
+
+            if (list.length === 0) {
+                noResults.classList.remove('hidden');
+                return;
+            } else {
+                noResults.classList.add('hidden');
+            }
+
+            list.forEach((biz, index) => {
+                const card = `
+                    <div class="bg-white rounded-2xl shadow-md hover:shadow-xl transition-shadow overflow-hidden border border-gray-100 flex flex-col">
+                        <div class="p-6">
+                            <div class="flex justify-between items-start mb-4">
+                                <span class="bg-blue-100 text-blue-700 text-xs font-bold px-3 py-1 rounded-full uppercase">
+                                    ${biz.product}
+                                </span>
+                            </div>
+                            <h3 class="text-xl font-bold text-gray-800 mb-2">${biz.name}</h3>
+                            <p class="text-gray-500 text-sm mb-4"><i class="fas fa-map-marker-alt mr-2 text-red-400"></i>${biz.location}, ${biz.ward}</p>
+                            <div class="space-y-2 text-sm text-gray-600 border-t pt-4">
+                                <p><strong>LGA:</strong> ${biz.lga}</p>
+                                <p><strong>State:</strong> ${biz.state}</p>
+                            </div>
+                        </div>
+                        <a href="tel:${biz.phone}" class="bg-blue-50 hover:bg-blue-100 text-blue-700 font-bold py-4 text-center transition-colors mt-auto">
+                            <i class="fas fa-phone-alt mr-2"></i> Contact Seller
+                        </a>
+                    </div>
+                `;
+                grid.innerHTML += card;
+            });
+        }
+
+        function filterBusinesses() {
+            const query = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = businessData.filter(biz => 
+                biz.product.toLowerCase().includes(query) || 
+                biz.name.toLowerCase().includes(query) ||
+                biz.lga.toLowerCase().includes(query)
+            );
+            displayBusinesses(filtered);
+        }
+
+        window.onload = fetchBusinesses;
+    </script>
+</body>
+</html>
